@@ -26,11 +26,7 @@ namespace Walks.UI.Controllers
                 var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
                 var httpresponse = await client.GetAsync($"{apiUrl}/api/Regions");
                 httpresponse.EnsureSuccessStatusCode();
-                var regions = await httpresponse.Content.ReadFromJsonAsync<IEnumerable<RegionDTO>>();
-                if (regions != null)
-                {
-                    response.AddRange(regions);
-                }
+                response.AddRange(await httpresponse.Content.ReadFromJsonAsync<IEnumerable<RegionDTO>>() ?? new List<RegionDTO>());
             }
             catch (HttpRequestException ex)
             {
@@ -142,17 +138,9 @@ namespace Walks.UI.Controllers
                 httpresponse.EnsureSuccessStatusCode();
                 return RedirectToAction("Index");
             }
-            catch (HttpRequestException ex)
+            catch (Exception)
             {
-                logger.LogError(ex, "Failed to connect to API");
-                ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "An error occurred while deleting region");
-                ViewBag.Error = "An error occurred while deleting the region.";
-                return RedirectToAction("Index");
+                throw;
             }
         }
     }
