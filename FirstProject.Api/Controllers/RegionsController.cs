@@ -102,9 +102,6 @@ namespace FirstProject.Api.Controllers
                 {
                     return NotFound();
                 }
-                //update the region
-
-                //Convert Domain model to DTO 
                 var regionDTO = mapper.Map<RegionDTO>(regionDomainModel);
                 return Ok(regionDTO);
            
