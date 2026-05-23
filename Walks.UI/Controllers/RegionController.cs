@@ -7,10 +7,14 @@ namespace Walks.UI.Controllers
     public class RegionController : Controller
     {
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IConfiguration configuration;
+        private readonly ILogger<RegionController> logger;
 
-        public RegionController(IHttpClientFactory httpClientFactory)
+        public RegionController(IHttpClientFactory httpClientFactory, IConfiguration configuration, ILogger<RegionController> logger)
         {
             this.httpClientFactory = httpClientFactory;
+            this.configuration = configuration;
+            this.logger = logger;
         }
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -19,15 +23,24 @@ namespace Walks.UI.Controllers
             try
             {
                 var client = httpClientFactory.CreateClient();
-                var httpresponse = await client.GetAsync("https://localhost:7137/api/Regions");
+                var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
+                var httpresponse = await client.GetAsync($"{apiUrl}/api/Regions");
                 httpresponse.EnsureSuccessStatusCode();
-                response.AddRange(await httpresponse.Content.ReadFromJsonAsync<IEnumerable<RegionDTO>>());
-
+                var regions = await httpresponse.Content.ReadFromJsonAsync<IEnumerable<RegionDTO>>();
+                if (regions != null)
+                {
+                    response.AddRange(regions);
+                }
             }
-            catch (Exception)
+            catch (HttpRequestException ex)
             {
-
-                throw;
+                logger.LogError(ex, "Failed to connect to API");
+                ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while fetching regions");
+                ViewBag.Error = "An error occurred while loading regions.";
             }
 
             return View(response);
@@ -45,26 +58,52 @@ namespace Walks.UI.Controllers
             try
             {
                 var client = httpClientFactory.CreateClient();
-                var httpresponse = await client.PostAsJsonAsync("https://localhost:7137/api/Regions", addRegionViewModel);
+                var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
+                var httpresponse = await client.PostAsJsonAsync($"{apiUrl}/api/Regions", addRegionViewModel);
                 httpresponse.EnsureSuccessStatusCode();
                 return RedirectToAction("Index");
             }
-            catch (Exception)
+            catch (HttpRequestException ex)
             {
-                throw;
+                logger.LogError(ex, "Failed to connect to API");
+                ModelState.AddModelError("", "Unable to connect to the API server. Please ensure the API is running.");
+                return View(addRegionViewModel);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while adding region");
+                ModelState.AddModelError("", "An error occurred while adding the region.");
+                return View(addRegionViewModel);
             }
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(Guid id)
         {
-            var client = httpClientFactory.CreateClient();
-            var httpresponse = await client.GetFromJsonAsync<RegionDTO>($"https://localhost:7137/api/Regions/{id}");
-            if (httpresponse is not null)
+            try
             {
-                return View(httpresponse);
+                var client = httpClientFactory.CreateClient();
+                var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
+                var httpresponse = await client.GetFromJsonAsync<RegionDTO>($"{apiUrl}/api/Regions/{id}");
+                if (httpresponse is not null)
+                {
+                    return View(httpresponse);
+                }
+                ViewBag.Error = "Region not found.";
+                return View(null);
             }
-            return View(null);
+            catch (HttpRequestException ex)
+            {
+                logger.LogError(ex, "Failed to connect to API");
+                ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
+                return View(null);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while fetching region");
+                ViewBag.Error = "An error occurred while loading the region.";
+                return View(null);
+            }
         }
 
         [HttpPost]
@@ -73,13 +112,22 @@ namespace Walks.UI.Controllers
             try
             {
                 var client = httpClientFactory.CreateClient();
-                var httpresponse = await client.PutAsJsonAsync($"https://localhost:7137/api/Regions/{regionDTO.Id}", regionDTO);
+                var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
+                var httpresponse = await client.PutAsJsonAsync($"{apiUrl}/api/Regions/{regionDTO.Id}", regionDTO);
                 httpresponse.EnsureSuccessStatusCode();
                 return RedirectToAction("Index");
             }
-            catch (Exception)
+            catch (HttpRequestException ex)
             {
-                throw;
+                logger.LogError(ex, "Failed to connect to API");
+                ModelState.AddModelError("", "Unable to connect to the API server. Please ensure the API is running.");
+                return View(regionDTO);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while editing region");
+                ModelState.AddModelError("", "An error occurred while editing the region.");
+                return View(regionDTO);
             }
         }
 
@@ -89,13 +137,22 @@ namespace Walks.UI.Controllers
             try
             {
                 var client = httpClientFactory.CreateClient();
-                var httpresponse = await client.DeleteAsync($"https://localhost:7137/api/Regions/{regiondto.Id}");
+                var apiUrl = configuration["ApiSettings:ApiBaseUrl"];
+                var httpresponse = await client.DeleteAsync($"{apiUrl}/api/Regions/{regiondto.Id}");
                 httpresponse.EnsureSuccessStatusCode();
                 return RedirectToAction("Index");
             }
-            catch (Exception)
+            catch (HttpRequestException ex)
             {
-                throw;
+                logger.LogError(ex, "Failed to connect to API");
+                ViewBag.Error = "Unable to connect to the API server. Please ensure the API is running.";
+                return RedirectToAction("Index");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "An error occurred while deleting region");
+                ViewBag.Error = "An error occurred while deleting the region.";
+                return RedirectToAction("Index");
             }
         }
     }
