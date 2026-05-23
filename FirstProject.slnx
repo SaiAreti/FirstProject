@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="FirstProject.Api/FirstProject.Api.csproj" />
+  <Project Path="Walks.UI/Walks.UI.csproj" Id="bcf79bb9-2791-4e2f-b150-9f9d1e26b37c" />
+</Solution>
